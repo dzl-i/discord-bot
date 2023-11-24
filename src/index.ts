@@ -1,7 +1,24 @@
-import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, EmbedBuilder, TextChannel, ChannelType } from 'discord.js';
 import 'dotenv/config';
+import { WebsiteMonitor } from './WebsiteMonitor';
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
+
+client.once('ready', () => {
+  // Find the #updates channel
+  const updatesChannel = client.channels.cache.find(
+    (channel): channel is TextChannel => channel.type === ChannelType.GuildText && channel.name === 'updates'
+  ) as TextChannel | undefined;
+
+  if (updatesChannel) {
+    const monitor = new WebsiteMonitor('https://timetable.unsw.edu.au/2024/SENG3011.html', updatesChannel);
+
+    // Check for changes every hour
+    setInterval(() => monitor.checkForChanges(), 3600000); // 3600000 ms = 1 hour
+  } else {
+    console.log('Updates channel not found');
+  }
+});
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
